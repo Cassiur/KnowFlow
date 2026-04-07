@@ -1,10 +1,14 @@
 package com.yizhaoqi.smartpai.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yizhaoqi.smartpai.config.JwtAuthenticationFilter;
+import com.yizhaoqi.smartpai.config.OrgTagAuthorizationFilter;
 import com.yizhaoqi.smartpai.model.FileUpload;
 import com.yizhaoqi.smartpai.repository.FileUploadRepository;
 import com.yizhaoqi.smartpai.repository.OrganizationTagRepository;
+import com.yizhaoqi.smartpai.service.CustomUserDetailsService;
 import com.yizhaoqi.smartpai.service.DocumentService;
+import com.yizhaoqi.smartpai.service.OrgTagCacheService;
 import com.yizhaoqi.smartpai.utils.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,6 +55,18 @@ class DocumentControllerTest {
 
     @MockitoBean
     private JwtUtils jwtUtils;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean
+    private OrgTagAuthorizationFilter orgTagAuthorizationFilter;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private OrgTagCacheService orgTagCacheService;
 
     private FileUpload mockFile;
 

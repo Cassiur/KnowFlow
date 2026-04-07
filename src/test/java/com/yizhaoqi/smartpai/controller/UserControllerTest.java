@@ -1,9 +1,13 @@
 package com.yizhaoqi.smartpai.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yizhaoqi.smartpai.config.JwtAuthenticationFilter;
+import com.yizhaoqi.smartpai.config.OrgTagAuthorizationFilter;
 import com.yizhaoqi.smartpai.exception.CustomException;
 import com.yizhaoqi.smartpai.model.User;
 import com.yizhaoqi.smartpai.repository.UserRepository;
+import com.yizhaoqi.smartpai.service.CustomUserDetailsService;
+import com.yizhaoqi.smartpai.service.OrgTagCacheService;
 import com.yizhaoqi.smartpai.service.UserService;
 import com.yizhaoqi.smartpai.utils.JwtUtils;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +50,18 @@ class UserControllerTest {
 
     @MockitoBean
     private UserRepository userRepository;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean
+    private OrgTagAuthorizationFilter orgTagAuthorizationFilter;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private OrgTagCacheService orgTagCacheService;
 
     // ======================== POST /api/v1/users/register ========================
 
