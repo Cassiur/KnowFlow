@@ -139,3 +139,24 @@ ai:
     temperature: 0.3
     max-tokens: 2000
     top-p: 0.9
+
+# Actuator & Prometheus 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: knowflow
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5,0.95,0.99

@@ -10,6 +10,7 @@ import com.yizhaoqi.smartpai.exception.CustomException;
 import com.yizhaoqi.smartpai.repository.UserRepository;
 import com.yizhaoqi.smartpai.repository.FileUploadRepository;
 import com.yizhaoqi.smartpai.model.FileUpload;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +52,9 @@ public class HybridSearchService {
     @Autowired
     private FileUploadRepository fileUploadRepository;
 
+    @Autowired
+    private Timer searchTimer;
+
     /**
      * 使用文本匹配和向量相似度进行混合搜索，支持权限过滤
      * 该方法确保用户只能搜索其有权限访问的文档（自己的文档、公开文档、所属组织的文档）
@@ -61,114 +65,116 @@ public class HybridSearchService {
      * @return 搜索结果列表
      */
     public List<SearchResult> searchWithPermission(String query, String userId, int topK) {
-        logger.debug("开始带权限搜索，查询: {}, 用户ID: {}", query, userId);
-        
-        try {
-            // 获取用户有效的组织标签（包含层级关系）
-            List<String> userEffectiveTags = getUserEffectiveOrgTags(userId);
-            logger.debug("用户 {} 的有效组织标签: {}", userId, userEffectiveTags);
-
-            // 获取用户的数据库ID用于权限过滤
-            String userDbId = getUserDbId(userId);
-            logger.debug("用户 {} 的数据库ID: {}", userId, userDbId);
-
-            // 生成查询向量
-            final List<Float> queryVector = embedToVectorList(query);
-
-            // 如果向量生成失败，仅使用文本匹配
-            if (queryVector == null) {
-                logger.warn("向量生成失败，仅使用文本匹配进行搜索");
-                return textOnlySearchWithPermission(query, userDbId, userEffectiveTags, topK);
-            }
-
-            logger.debug("向量生成成功，开始执行混合搜索 KNN");
-
-            SearchResponse<EsDocument> response = esClient.search(s -> {
-                        s.index("knowledge_base");
-                        // KNN 召回
-                        int recallK = topK * 30; // KNN 召回窗口
-                        s.knn(kn -> kn
-                                .field("vector")
-                                .queryVector(queryVector)
-                                .k(recallK)
-                                .numCandidates(recallK)
-                        );
-                        // 必须命中关键词 + 权限过滤
-                        s.query(q -> q.bool(b -> b
-                                .must(mst -> mst.match(m -> m.field("textContent").query(query)))
-                                .filter(f -> f.bool(bf -> bf
-                                        // 条件1: 用户可访问自己的文档
-                                        .should(s1 -> s1.term(t -> t.field("userId").value(userDbId)))
-                                        // 条件2: 公开文档
-                                        .should(s2 -> s2.term(t -> t.field("public").value(true)))
-                                        // 条件3: 组织标签
-                                        .should(s3 -> {
-                                            if (userEffectiveTags.isEmpty()) {
-                                                return s3.matchNone(mn -> mn);
-                                            } else if (userEffectiveTags.size() == 1) {
-                                                return s3.term(t -> t.field("orgTag").value(userEffectiveTags.get(0)));
-                                            } else {
-                                                return s3.bool(inner -> {
-                                                    userEffectiveTags.forEach(tag -> inner.should(sh2 -> sh2.term(t -> t.field("orgTag").value(tag))));
-                                                    return inner;
-                                                });
-                                            }
-                                        })
-                                ))
-                        ));
-
-                        // 第二阶段 BM25 rescore
-                        s.rescore(r -> r
-                                .windowSize(recallK)
-                                .query(rq -> rq
-                                        .queryWeight(0.2d)               // 保留部分 KNN 分
-                                        .rescoreQueryWeight(1.0d)        // BM25 主导
-                                        .query(rqq -> rqq.match(m -> m
-                                                .field("textContent")
-                                                .query(query)
-                                                .operator(Operator.And)
-                                        ))
-                                )
-                        );
-                        s.size(topK);
-                        return s;
-                    }, EsDocument.class);
-
-            logger.debug("Elasticsearch查询执行完成，命中数量: {}, 最大分数: {}", 
-                response.hits().total().value(), response.hits().maxScore());
-
-            List<SearchResult> results = response.hits().hits().stream()
-                    .map(hit -> {
-                        assert hit.source() != null;
-                        logger.debug("搜索结果 - 文件: {}, 块: {}, 分数: {}, 内容: {}", 
-                            hit.source().getFileMd5(), hit.source().getChunkId(), hit.score(), 
-                            hit.source().getTextContent().substring(0, Math.min(50, hit.source().getTextContent().length())));
-                        return new SearchResult(
-                                hit.source().getFileMd5(),
-                                hit.source().getChunkId(),
-                                hit.source().getTextContent(),
-                                hit.score(),
-                                hit.source().getUserId(),
-                                hit.source().getOrgTag(),
-                                hit.source().isPublic()
-                        );
-                    })
-                    .toList();
-
-            logger.debug("返回搜索结果数量: {}", results.size());
-            attachFileNames(results);
-            return results;
-        } catch (Exception e) {
-            logger.error("带权限的搜索失败", e);
-            // 发生异常时尝试使用纯文本搜索作为后备方案
+        return searchTimer.record(() -> {
+            logger.debug("开始带权限搜索，查询: {}, 用户ID: {}", query, userId);
+            
             try {
-                logger.info("尝试使用纯文本搜索作为后备方案");
-                return textOnlySearchWithPermission(query, getUserDbId(userId), getUserEffectiveOrgTags(userId), topK);
-            } catch (Exception fallbackError) {
-                logger.error("后备搜索也失败", fallbackError);
-                return Collections.emptyList();
+                // 获取用户有效的组织标签（包含层级关系）
+                List<String> userEffectiveTags = getUserEffectiveOrgTags(userId);
+                logger.debug("用户 {} 的有效组织标签: {}", userId, userEffectiveTags);
+
+                // 获取用户的数据库ID用于权限过滤
+                String userDbId = getUserDbId(userId);
+                logger.debug("用户 {} 的数据库ID: {}", userId, userDbId);
+
+                // 生成查询向量
+                final List<Float> queryVector = embedToVectorList(query);
+
+                // 如果向量生成失败，仅使用文本匹配
+                if (queryVector == null) {
+                    logger.warn("向量生成失败，仅使用文本匹配进行搜索");
+                    return textOnlySearchWithPermission(query, userDbId, userEffectiveTags, topK);
+                }
+
+                logger.debug("向量生成成功，开始执行混合搜索 KNN");
+
+                SearchResponse<EsDocument> response = esClient.search(s -> {
+                            s.index("knowledge_base");
+                            // KNN 召回
+                            int recallK = topK * 30; // KNN 召回窗口
+                            s.knn(kn -> kn
+                                    .field("vector")
+                                    .queryVector(queryVector)
+                                    .k(recallK)
+                                    .numCandidates(recallK)
+                            );
+                            // 必须命中关键词 + 权限过滤
+                            s.query(q -> q.bool(b -> b
+                                    .must(mst -> mst.match(m -> m.field("textContent").query(query)))
+                                    .filter(f -> f.bool(bf -> bf
+                                            // 条件1: 用户可访问自己的文档
+                                            .should(s1 -> s1.term(t -> t.field("userId").value(userDbId)))
+                                            // 条件2: 公开文档
+                                            .should(s2 -> s2.term(t -> t.field("public").value(true)))
+                                            // 条件3: 组织标签
+                                            .should(s3 -> {
+                                                if (userEffectiveTags.isEmpty()) {
+                                                    return s3.matchNone(mn -> mn);
+                                                } else if (userEffectiveTags.size() == 1) {
+                                                    return s3.term(t -> t.field("orgTag").value(userEffectiveTags.get(0)));
+                                                } else {
+                                                    return s3.bool(inner -> {
+                                                        userEffectiveTags.forEach(tag -> inner.should(sh2 -> sh2.term(t -> t.field("orgTag").value(tag))));
+                                                        return inner;
+                                                    });
+                                                }
+                                            })
+                                    ))
+                            ));
+
+                            // 第二阶段 BM25 rescore
+                            s.rescore(r -> r
+                                    .windowSize(recallK)
+                                    .query(rq -> rq
+                                            .queryWeight(0.2d)               // 保留部分 KNN 分
+                                            .rescoreQueryWeight(1.0d)        // BM25 主导
+                                            .query(rqq -> rqq.match(m -> m
+                                                    .field("textContent")
+                                                    .query(query)
+                                                    .operator(Operator.And)
+                                            ))
+                                    )
+                            );
+                            s.size(topK);
+                            return s;
+                        }, EsDocument.class);
+
+                logger.debug("Elasticsearch查询执行完成，命中数量: {}, 最大分数: {}", 
+                    response.hits().total().value(), response.hits().maxScore());
+
+                List<SearchResult> results = response.hits().hits().stream()
+                        .map(hit -> {
+                            assert hit.source() != null;
+                            logger.debug("搜索结果 - 文件: {}, 块: {}, 分数: {}, 内容: {}", 
+                                hit.source().getFileMd5(), hit.source().getChunkId(), hit.score(), 
+                                hit.source().getTextContent().substring(0, Math.min(50, hit.source().getTextContent().length())));
+                            return new SearchResult(
+                                    hit.source().getFileMd5(),
+                                    hit.source().getChunkId(),
+                                    hit.source().getTextContent(),
+                                    hit.score(),
+                                    hit.source().getUserId(),
+                                    hit.source().getOrgTag(),
+                                    hit.source().isPublic()
+                            );
+                        })
+                        .toList();
+
+                logger.debug("返回搜索结果数量: {}", results.size());
+                attachFileNames(results);
+                return results;
+            } catch (Exception e) {
+                logger.error("带权限的搜索失败", e);
+                // 发生异常时尝试使用纯文本搜索作为后备方案
+                try {
+                    logger.info("尝试使用纯文本搜索作为后备方案");
+                    return textOnlySearchWithPermission(query, getUserDbId(userId), getUserEffectiveOrgTags(userId), topK);
+                } catch (Exception fallbackError) {
+                    logger.error("后备搜索也失败", fallbackError);
+                    return Collections.emptyList();
+                }
             }
-        }
+        });
     }
 
     /**

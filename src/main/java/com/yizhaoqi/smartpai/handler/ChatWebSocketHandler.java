@@ -10,6 +10,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yizhaoqi.smartpai.service.ChatHandler;
 import com.yizhaoqi.smartpai.utils.JwtUtils;
+import io.micrometer.core.instrument.Counter;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
@@ -21,21 +23,24 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final ConcurrentHashMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final JwtUtils jwtUtils;
+    private final AtomicInteger activeConnections;
     
     // 内部指令令牌 - 可以从配置文件读取
     private static final String INTERNAL_CMD_TOKEN = "WSS_STOP_CMD_" + System.currentTimeMillis() % 1000000;
 
-    public ChatWebSocketHandler(ChatHandler chatHandler, JwtUtils jwtUtils) {
+    public ChatWebSocketHandler(ChatHandler chatHandler, JwtUtils jwtUtils, AtomicInteger activeWebSocketConnections) {
         this.chatHandler = chatHandler;
         this.jwtUtils = jwtUtils;
+        this.activeConnections = activeWebSocketConnections;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         String userId = extractUserId(session);
         sessions.put(userId, session);
-        logger.info("WebSocket连接已建立，用户ID: {}，会话ID: {}，URI路径: {}", 
-                    userId, session.getId(), session.getUri().getPath());
+        activeConnections.incrementAndGet();
+        logger.info("WebSocket连接已建立，用户ID: {}，会话ID: {}，URI路径: {}，当前活跃连接数: {}", 
+                    userId, session.getId(), session.getUri().getPath(), activeConnections.get());
     }
 
     @Override
@@ -83,8 +88,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         String userId = extractUserId(session);
         sessions.remove(userId);
-        logger.info("WebSocket连接已关闭，用户ID: {}，会话ID: {}，状态: {}", 
-                    userId, session.getId(), status);
+        activeConnections.decrementAndGet();
+        logger.info("WebSocket连接已关闭，用户ID: {}，会话ID: {}，状态: {}，当前活跃连接数: {}", 
+                    userId, session.getId(), status, activeConnections.get());
     }
 
     private String extractUserId(WebSocketSession session) {

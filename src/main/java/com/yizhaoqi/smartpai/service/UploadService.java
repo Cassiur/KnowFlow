@@ -6,6 +6,7 @@ import com.yizhaoqi.smartpai.repository.ChunkInfoRepository;
 import com.yizhaoqi.smartpai.repository.FileUploadRepository;
 import io.minio.*;
 import io.minio.http.Method;
+import io.micrometer.core.instrument.Counter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,10 @@ public class UploadService {
 
     @Autowired
     private String minioPublicUrl; // 注入 MinIO 的公共访问地址
+
+    // 文件上传计数器（用于监控）
+    @Autowired
+    private Counter fileUploadCounter;
 
     /**
      * 上传文件分片
@@ -652,6 +657,10 @@ public class UploadService {
                                 .build()
                 );
                 logger.info("预签名URL已生成 => fileMd5: {}, fileName: {}, fileType: {}, URL: {}", fileMd5, fileName, fileType, presignedUrl);
+                
+                // 文件上传成功，增加计数器
+                fileUploadCounter.increment();
+                logger.info("文件上传计数器已递增 => fileMd5: {}, fileName: {}", fileMd5, fileName);
                 
                 return presignedUrl;
             } catch (Exception e) {

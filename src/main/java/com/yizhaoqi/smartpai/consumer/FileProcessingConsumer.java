@@ -6,6 +6,7 @@ import com.yizhaoqi.smartpai.service.ParseService;
 import com.yizhaoqi.smartpai.service.VectorizationService;
 import io.minio.MinioClient;
 import io.minio.errors.*;
+import io.micrometer.core.instrument.Counter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -23,13 +24,16 @@ public class FileProcessingConsumer {
 
     private final ParseService parseService;
     private final VectorizationService vectorizationService;
+    private final Counter kafkaProcessedCounter;
+    
     @Autowired
     private KafkaConfig kafkaConfig;
 
 
-    public FileProcessingConsumer(ParseService parseService, VectorizationService vectorizationService) {
+    public FileProcessingConsumer(ParseService parseService, VectorizationService vectorizationService, Counter kafkaProcessedCounter) {
         this.parseService = parseService;
         this.vectorizationService = vectorizationService;
+        this.kafkaProcessedCounter = kafkaProcessedCounter;
     }
 
     @KafkaListener(topics = "#{kafkaConfig.getFileProcessingTopic()}", groupId = "#{kafkaConfig.getFileProcessingGroupId()}")
@@ -61,6 +65,10 @@ public class FileProcessingConsumer {
             vectorizationService.vectorize(task.getFileMd5(), 
                     task.getUserId(), task.getOrgTag(), task.isPublic());
             log.info("向量化完成，fileMd5: {}", task.getFileMd5());
+            
+            // Kafka消息处理成功，增加计数器
+            kafkaProcessedCounter.increment();
+            log.debug("Kafka消息处理计数器已递增，fileMd5: {}", task.getFileMd5());
         } catch (Exception e) {
             log.error("Error processing task: {}", task, e);
             // 抛出异常让 Kafka 的 DefaultErrorHandler 捕获并触发重试 / 死信

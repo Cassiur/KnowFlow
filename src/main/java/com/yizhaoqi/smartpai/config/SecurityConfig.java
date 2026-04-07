@@ -47,6 +47,8 @@ public class SecurityConfig {
                             .requestMatchers("/", "/test.html", "/static/test.html", "/static/**", "/*.js", "/*.css", "/*.ico").permitAll()
                             // 允许 Swagger/OpenAPI 文档访问
                             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                            // 允许 Actuator 监控端点访问（Prometheus 采集）
+                            .requestMatchers("/actuator/**").permitAll()
                             // 允许 WebSocket 连接
                             .requestMatchers("/chat/**", "/ws/**").permitAll()
                             // 允许登录注册接口
