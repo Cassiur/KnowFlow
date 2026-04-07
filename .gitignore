@@ -1,0 +1,31 @@
+# Maven 构建产物
+target/
+*.jar
+*.war
+
+# IDE 配置
+.idea/
+*.iml
+*.iws
+.vscode/
+*.classpath
+*.project
+*.settings/
+
+# 前端依赖
+frontend/node_modules/
+frontend/dist/
+frontend/.turbo/
+
+# 日志
+logs/
+*.log
+boot.log
+
+# 环境配置（含敏感信息，不提交）
+src/main/resources/application-dev.yml
+
+# 临时文件
+*.tmp
+*.bak
+C:/Temp/
