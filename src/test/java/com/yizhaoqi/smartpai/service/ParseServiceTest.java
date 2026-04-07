@@ -1,12 +1,7 @@
 package com.yizhaoqi.smartpai.service;
 
-import com.yizhaoqi.smartpai.repository.DocumentVectorRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Method;
@@ -17,19 +12,18 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * ParseService 的测试类
  * 主要测试 splitLongSentence 方法的功能
+ * 
+ * 注意：这是一个纯单元测试，不依赖 Spring 上下文
+ * 使用手动 new 创建被测对象，避免 CI 环境缺少外部服务导致失败
  */
-@SpringBootTest
 class ParseServiceTest {
 
-    @Mock
-    private DocumentVectorRepository documentVectorRepository;
-
-    @InjectMocks
     private ParseService parseService;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // 手动创建 ParseService 实例，避免依赖 Spring 上下文
+        parseService = new ParseService();
         // 设置配置值
         ReflectionTestUtils.setField(parseService, "chunkSize", 1000);
         ReflectionTestUtils.setField(parseService, "bufferSize", 8192);

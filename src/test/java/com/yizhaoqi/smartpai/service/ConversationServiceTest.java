@@ -6,17 +6,22 @@ import com.yizhaoqi.smartpai.repository.ConversationRepository;
 import com.yizhaoqi.smartpai.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
+/**
+ * ConversationService 单元测试
+ * 使用 @ExtendWith(MockitoExtension.class) 支持 Mockito 注解
+ */
+@ExtendWith(MockitoExtension.class)
 class ConversationServiceTest {
 
     @Mock
@@ -27,11 +32,6 @@ class ConversationServiceTest {
 
     @InjectMocks
     private ConversationService conversationService;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void testRecordConversation() {

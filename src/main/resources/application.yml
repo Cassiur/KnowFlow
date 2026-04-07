@@ -113,7 +113,7 @@ deepseek:
   api:
     url: https://api.deepseek.com/v1  # 本地是 http://localhost:11434/v1 官方：https://api.deepseek.com/v1
     model: deepseek-chat  # 本地: deepseek-r1:7b, 官方: deepseek-chat
-    key: sk-c71a24d763024b578ccbccc4c46ac404
+    key: sk-4cc081113451435ca1a77cda2a188816
 
 embedding:
   api:

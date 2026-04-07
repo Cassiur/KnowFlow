@@ -228,6 +228,18 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <!-- Surefire 测试插件配置 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Java 21+ 需要添加 JVM 参数以支持 Mockito 的 inline mock maker -->
+                    <argLine>-XX:+EnableDynamicAgentLoading -Djdk.attach.allowAttachSelf=true</argLine>
+                    <!-- 串行运行测试以避免内存问题 -->
+                    <forkCount>1</forkCount>
+                    <reuseForks>false</reuseForks>
+                </configuration>
+            </plugin>
             <!-- JaCoCo 覆盖率统计插件，目标覆盖率 70% -->
             <plugin>
                 <groupId>org.jacoco</groupId>
