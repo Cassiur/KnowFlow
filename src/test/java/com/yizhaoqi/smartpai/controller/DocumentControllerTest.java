@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -35,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 注意：Controller 方法依赖 @RequestAttribute 注入 userId/role，测试时通过 requestAttr 注入
  */
 @WebMvcTest(DocumentController.class)
+@AutoConfigureMockMvc(addFilters = false)  // 禁用安全过滤器以简化测试
 @DisplayName("DocumentController API 测试")
 class DocumentControllerTest {
 

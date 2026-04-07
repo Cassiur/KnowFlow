@@ -8,6 +8,11 @@ import com.yizhaoqi.smartpai.model.User;
 import com.yizhaoqi.smartpai.repository.UserRepository;
 import com.yizhaoqi.smartpai.utils.JwtUtils;
 import com.yizhaoqi.smartpai.utils.LogUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -22,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "对话历史管理", description = "用户对话历史相关接口，包括查询对话历史等功能")
 @RestController
 @RequestMapping("/api/v1/users/conversation")
 public class ConversationController {
@@ -41,6 +47,14 @@ public class ConversationController {
     /**
      * 查询对话历史，从Redis中获取
      */
+    @Operation(summary = "查询对话历史", description = "用户查询自己的对话历史，支持按时间范围筛选")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取对话历史"),
+        @ApiResponse(responseCode = "400", description = "时间格式错误"),
+        @ApiResponse(responseCode = "401", description = "Token无效或已过期"),
+        @ApiResponse(responseCode = "404", description = "用户不存在"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping
     public ResponseEntity<?> getConversations(
             @RequestHeader("Authorization") String token,

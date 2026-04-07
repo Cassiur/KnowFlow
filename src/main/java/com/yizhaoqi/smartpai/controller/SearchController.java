@@ -2,6 +2,11 @@ package com.yizhaoqi.smartpai.controller;
 
 import com.yizhaoqi.smartpai.service.HybridSearchService;
 import com.yizhaoqi.smartpai.utils.LogUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.yizhaoqi.smartpai.entity.SearchResult;
@@ -12,6 +17,7 @@ import java.util.HashMap;
 import java.util.Collections;
 
 // 提供混合检索接口
+@Tag(name = "搜索管理", description = "搜索相关接口，提供基于向量与关键词的混合检索功能")
 @RestController
 @RequestMapping("/api/v1/search")
 public class SearchController {
@@ -43,6 +49,11 @@ public class SearchController {
      *   }
      * ]
      */
+    @Operation(summary = "混合检索", description = "基于向量相似度和关键词的混合检索，返回最相关的文档片段")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "检索成功"),
+        @ApiResponse(responseCode = "500", description = "检索失败，服务器内部错误")
+    })
     @GetMapping("/hybrid")
     public Map<String, Object> hybridSearch(@RequestParam String query,
                                             @RequestParam(defaultValue = "10") int topK,

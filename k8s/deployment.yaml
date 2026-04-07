@@ -1,0 +1,245 @@
+# ============================================
+# KnowFlow 项目 Kubernetes Deployment 配置
+# ============================================
+# Deployment 用于管理应用的 Pod 副本，支持滚动更新和回滚
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Deployment 名称
+  name: knowflow-deployment
+  # 所属命名空间
+  namespace: knowflow
+  labels:
+    app: knowflow
+    component: backend
+    version: v1
+spec:
+  # ============================================
+  # 副本数配置
+  # ============================================
+  # 初始副本数，HPA 会根据负载自动调整
+  replicas: 2
+  
+  # ============================================
+  # Pod 选择器
+  # ============================================
+  # 用于匹配管理的 Pod，必须与 template.metadata.labels 一致
+  selector:
+    matchLabels:
+      app: knowflow
+      component: backend
+  
+  # ============================================
+  # 滚动更新策略
+  # ============================================
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # 更新期间可以超出期望副本数的最大数量
+      # 设置为 1 表示允许最多比期望多 1 个 Pod
+      maxSurge: 1
+      # 更新期间不可用 Pod 的最大数量
+      # 设置为 0 表示不允许有不可用 Pod（零停机部署）
+      maxUnavailable: 0
+  
+  # ============================================
+  # Pod 模板定义
+  # ============================================
+  template:
+    metadata:
+      labels:
+        app: knowflow
+        component: backend
+        version: v1
+      annotations:
+        # 用于触发滚动更新的注释（修改此值可强制重新部署）
+        # 例如：kubectl rollout restart deployment knowflow-deployment
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      # ============================================
+      # 安全上下文
+      # ============================================
+      # 以非 root 用户运行（与 Dockerfile 中的 USER 指令配合）
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      # ============================================
+      # 容器定义
+      # ============================================
+      containers:
+        - name: knowflow
+          # 镜像地址（部署前需要推送到镜像仓库）
+          # 格式：<registry>/<namespace>/<image>:<tag>
+          image: knowflow/knowflow-backend:0.0.1-SNAPSHOT
+          
+          # 镜像拉取策略
+          # Always: 总是拉取最新镜像
+          # IfNotPresent: 本地不存在时拉取（推荐用于稳定版本）
+          # Never: 只使用本地镜像
+          imagePullPolicy: IfNotPresent
+          
+          # ============================================
+          # 端口配置
+          # ============================================
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          
+          # ============================================
+          # 环境变量配置
+          # ============================================
+          # 从 ConfigMap 加载非敏感配置
+          envFrom:
+            - configMapRef:
+                name: knowflow-config
+          
+          # 从 Secret 加载敏感配置
+          env:
+            # 数据库密码
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: knowflow-secret
+                  key: SPRING_DATASOURCE_PASSWORD
+            
+            # Redis 密码
+            - name: SPRING_DATA_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: knowflow-secret
+                  key: SPRING_DATA_REDIS_PASSWORD
+            
+            # MinIO 密钥
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: knowflow-secret
+                  key: MINIO_SECRET_KEY
+            
+            # Elasticsearch 密码
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: knowflow-secret
+                  key: ELASTICSEARCH_PASSWORD
+            
+            # JWT 密钥
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: knowflow-secret
+                  key: JWT_SECRET_KEY
+            
+            # 管理员初始密码
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: knowflow-secret
+                  key: ADMIN_PASSWORD
+            
+            # DeepSeek API 密钥
+            - name: DEEPSEEK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: knowflow-secret
+                  key: DEEPSEEK_API_KEY
+            
+            # Embedding API 密钥
+            - name: EMBEDDING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: knowflow-secret
+                  key: EMBEDDING_API_KEY
+          
+          # ============================================
+          # 资源限制
+          # ============================================
+          resources:
+            # 请求资源（调度时使用）
+            requests:
+              cpu: "250m"      # 250 毫核 = 0.25 核
+              memory: "512Mi"  # 512 MB
+            # 资源上限（运行时限制）
+            limits:
+              cpu: "1000m"     # 1000 毫核 = 1 核
+              memory: "1Gi"    # 1 GB
+          
+          # ============================================
+          # 就绪探针（Readiness Probe）
+          # ============================================
+          # 用于判断 Pod 是否已准备好接收流量
+          # 探针失败时，Pod 会从 Service 的端点列表中移除
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+              scheme: HTTP
+            # 初始延迟：给应用启动时间
+            initialDelaySeconds: 30
+            # 检查间隔
+            periodSeconds: 10
+            # 超时时间
+            timeoutSeconds: 5
+            # 成功阈值（连续成功次数）
+            successThreshold: 1
+            # 失败阈值（连续失败次数）
+            failureThreshold: 3
+          
+          # ============================================
+          # 存活探针（Liveness Probe）
+          # ============================================
+          # 用于判断 Pod 是否存活，探针失败时会重启容器
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+              scheme: HTTP
+            # 初始延迟：比就绪探针更长，确保应用完全启动
+            initialDelaySeconds: 60
+            # 检查间隔
+            periodSeconds: 15
+            # 超时时间
+            timeoutSeconds: 5
+            # 成功阈值
+            successThreshold: 1
+            # 失败阈值
+            failureThreshold: 3
+          
+          # ============================================
+          # 优雅关闭配置
+          # ============================================
+          lifecycle:
+            preStop:
+              exec:
+                # 优雅关闭前等待，确保正在处理的请求完成
+                command: ["/bin/sh", "-c", "sleep 15"]
+      
+      # ============================================
+      # 终止优雅期
+      # ============================================
+      # Pod 收到终止信号后的宽限期（秒）
+      terminationGracePeriodSeconds: 60
+      
+      # ============================================
+      # 亲和性配置（可选）
+      # ============================================
+      # 用于控制 Pod 在节点上的分布
+      affinity:
+        # Pod 反亲和性：尽量将 Pod 分散到不同节点
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - knowflow
+                topologyKey: kubernetes.io/hostname

@@ -3,6 +3,10 @@ package com.yizhaoqi.smartpai.controller;
 import com.yizhaoqi.smartpai.handler.ChatWebSocketHandler;
 import com.yizhaoqi.smartpai.service.ChatHandler;
 import com.yizhaoqi.smartpai.utils.LogUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +18,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.util.Map;
 
+@Tag(name = "聊天管理", description = "聊天相关接口，包括WebSocket消息处理和停止指令Token获取")
 @Component
 @RestController
 @RequestMapping("/api/v1/chat")
@@ -49,6 +54,11 @@ public class ChatController extends TextWebSocketHandler {
     /**
      * 获取WebSocket停止指令Token
      */
+    @Operation(summary = "获取WebSocket停止指令Token", description = "获取用于停止WebSocket流的内部指令Token")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取Token"),
+        @ApiResponse(responseCode = "500", description = "Token生成失败或服务器内部错误")
+    })
     @GetMapping("/websocket-token")
     public ResponseEntity<?> getWebSocketToken() {
         try {

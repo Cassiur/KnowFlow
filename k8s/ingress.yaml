@@ -1,0 +1,120 @@
+# ============================================
+# KnowFlow 项目 Kubernetes Ingress 配置
+# ============================================
+# Ingress 用于将外部 HTTP/HTTPS 流量路由到集群内部 Service
+# 需要集群中已安装 Ingress Controller（如 Nginx Ingress Controller）
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  # Ingress 名称
+  name: knowflow-ingress
+  # 所属命名空间
+  namespace: knowflow
+  labels:
+    app: knowflow
+    component: ingress
+  annotations:
+    # ============================================
+    # Nginx Ingress Controller 注解
+    # ============================================
+    
+    # 指定 Ingress Controller 类名
+    kubernetes.io/ingress.class: "nginx"
+    
+    # 重写目标（如需路径重写）
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+    
+    # 请求体大小限制（上传文件需要较大限制）
+    # 与 application.yml 中的 max-request-size 保持一致
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    
+    # 代理连接超时时间
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    
+    # 代理发送超时时间
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    
+    # 代理读取超时时间
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    
+    # 启用 CORS（跨域资源共享）
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    
+    # 后端协议（如使用 HTTPS 通信）
+    # nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    
+    # SSL 重定向（强制 HTTPS）
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # 速率限制（防止 DDoS）
+    # nginx.ingress.kubernetes.io/limit-rps: "10"
+    # nginx.ingress.kubernetes.io/limit-connections: "5"
+    
+    # 客户端 IP 透传
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+    
+    # 负载均衡算法
+    # nginx.ingress.kubernetes.io/load-balance: "round_robin"
+    
+    # 会话保持（粘性会话）
+    # nginx.ingress.kubernetes.io/affinity: "cookie"
+    # nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    # nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+    # nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+
+spec:
+  # ============================================
+  # Ingress 规则
+  # ============================================
+  rules:
+    # 主机名（域名），根据实际情况修改
+    # 如需使用 IP 访问，可删除 host 字段
+    - host: knowflow.example.com
+      http:
+        paths:
+          # ============================================
+          # 路径规则
+          # ============================================
+          # 根路径 / 所有流量都路由到 knowflow-service
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                # 后端 Service 名称
+                name: knowflow-service
+                port:
+                  # Service 暴露的端口
+                  number: 80
+  
+  # ============================================
+  # TLS 配置（HTTPS）
+  # ============================================
+  # 如需启用 HTTPS，取消注释并配置证书
+  # tls:
+  #   - hosts:
+  #       - knowflow.example.com
+  #     # 引用 Secret 中的 TLS 证书
+  #     secretName: knowflow-tls
+
+---
+# ============================================
+# 默认后端配置（可选）
+# ============================================
+# 用于处理没有匹配规则的请求
+# 
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: knowflow-default-backend
+#   namespace: knowflow
+# spec:
+#   defaultBackend:
+#     service:
+#       name: knowflow-service
+#       port:
+#         number: 80

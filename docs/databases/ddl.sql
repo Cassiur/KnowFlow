@@ -55,3 +55,34 @@ CREATE TABLE document_vectors (
                                   org_tag VARCHAR(50) COMMENT '文件所属组织标签',
                                   is_public BOOLEAN NOT NULL DEFAULT FALSE COMMENT '文件是否公开'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文档向量存储表';
+
+-- =============================================
+-- 以下为数据库查询优化补充索引
+-- 基于 Repository 查询模式分析添加
+-- =============================================
+
+-- chunk_info 表索引：支持按 file_md5 查询并按 chunk_index 排序
+ALTER TABLE chunk_info ADD INDEX idx_file_md5_chunk_index (file_md5, chunk_index);
+
+-- document_vectors 表索引：支持按 file_md5 查询和删除操作
+ALTER TABLE document_vectors ADD INDEX idx_file_md5 (file_md5);
+-- 支持按用户查询文档向量
+ALTER TABLE document_vectors ADD INDEX idx_user_id (user_id);
+-- 支持按组织标签和公开状态查询
+ALTER TABLE document_vectors ADD INDEX idx_org_tag_is_public (org_tag, is_public);
+
+-- file_upload 表补充索引：支持按是否公开查询
+ALTER TABLE file_upload ADD INDEX idx_is_public (is_public);
+-- 支持按文件名和公开状态查询
+ALTER TABLE file_upload ADD INDEX idx_file_name_is_public (file_name, is_public);
+-- 支持按组织标签和公开状态查询（权限过滤场景）
+ALTER TABLE file_upload ADD INDEX idx_org_tag_is_public (org_tag, is_public);
+-- 支持按用户ID和状态查询
+ALTER TABLE file_upload ADD INDEX idx_user_id_status (user_id, status);
+
+-- organization_tags 表索引：支持按父标签查询（构建标签树）
+ALTER TABLE organization_tags ADD INDEX idx_parent_tag (parent_tag);
+
+-- conversations 表补充索引：支持按用户和时间范围查询
+-- 注：Entity 中已定义 idx_user_id 和 idx_timestamp，此处补充复合索引
+ALTER TABLE conversations ADD INDEX idx_user_id_timestamp (user_id, timestamp);

@@ -1,0 +1,148 @@
+# ============================================
+# KnowFlow 项目 Kubernetes HPA 配置
+# ============================================
+# HorizontalPodAutoscaler (HPA) 用于根据负载自动扩缩 Pod 数量
+# 需要集群中已安装 metrics-server
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  # HPA 名称
+  name: knowflow-hpa
+  # 所属命名空间
+  namespace: knowflow
+  labels:
+    app: knowflow
+    component: hpa
+spec:
+  # ============================================
+  # 扩缩目标
+  # ============================================
+  scaleTargetRef:
+    # 目标 API 版本
+    apiVersion: apps/v1
+    # 目标资源类型
+    kind: Deployment
+    # 目标 Deployment 名称
+    name: knowflow-deployment
+  
+  # ============================================
+  # 副本数范围
+  # ============================================
+  # 最小副本数（即使负载为 0 也保持的最小 Pod 数）
+  minReplicas: 2
+  # 最大副本数（负载再高也不会超过此数量）
+  maxReplicas: 5
+  
+  # ============================================
+  # 扩缩行为配置
+  # ============================================
+  behavior:
+    # 扩容行为
+    scaleUp:
+      # 稳定窗口：扩容后等待多长时间再次评估
+      stabilizationWindowSeconds: 60
+      # 扩容策略
+      policies:
+        # 策略1：每分钟最多扩容 2 个 Pod
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+        # 策略2：每分钟最多扩容 100%（翻倍）
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+      # 选择最保守的策略
+      selectPolicy: Min
+    
+    # 缩容行为
+    scaleDown:
+      # 稳定窗口：缩容前等待时间（防止频繁缩容）
+      stabilizationWindowSeconds: 300
+      # 缩容策略
+      policies:
+        # 每分钟最多缩容 1 个 Pod
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      # 选择最保守的策略
+      selectPolicy: Min
+  
+  # ============================================
+  # 扩缩指标
+  # ============================================
+  metrics:
+    # ----------------------------------------
+    # CPU 使用率指标
+    # ----------------------------------------
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          # 指标类型：Utilization 表示百分比
+          type: Utilization
+          # 目标 CPU 使用率（相对于 requests.cpu 的百分比）
+          # 当 CPU 使用率超过 70% 时触发扩容
+          averageUtilization: 70
+    
+    # ----------------------------------------
+    # 内存使用率指标（可选）
+    # ----------------------------------------
+    # - type: Resource
+    #   resource:
+    #     name: memory
+    #     target:
+    #       type: Utilization
+    #       averageUtilization: 80
+    
+    # ----------------------------------------
+    # 自定义指标（需配合 Prometheus Adapter）
+    # ----------------------------------------
+    # - type: Pods
+    #   pods:
+    #     metric:
+    #       name: http_requests_per_second
+    #     target:
+    #       type: AverageValue
+    #       averageValue: "100"
+    
+    # ----------------------------------------
+    # 外部指标（如消息队列长度）
+    # ----------------------------------------
+    # - type: External
+    #   external:
+    #     metric:
+    #       name: kafka_consumer_lag
+    #       selector:
+    #         matchLabels:
+    #           topic: file-processing-topic1
+    #     target:
+    #       type: AverageValue
+    #       averageValue: "1000"
+
+---
+# ============================================
+# PodDisruptionBudget 配置（可选）
+# ============================================
+# 确保在节点维护、升级等操作时，至少有指定数量的 Pod 可用
+# 建议生产环境启用
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: knowflow-pdb
+  namespace: knowflow
+  labels:
+    app: knowflow
+    component: pdb
+spec:
+  # 最少可用 Pod 数量
+  minAvailable: 1
+  # 或设置最大不可用数量
+  # maxUnavailable: 1
+  
+  # 选择器（与 Deployment 的 selector 一致）
+  selector:
+    matchLabels:
+      app: knowflow
+      component: backend

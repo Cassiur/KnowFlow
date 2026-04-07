@@ -1,0 +1,18 @@
+# ============================================
+# KnowFlow 项目 Kubernetes 命名空间配置
+# ============================================
+# 命名空间用于逻辑隔离不同的应用环境
+# 建议生产环境使用独立的命名空间
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  # 命名空间名称，所有 KnowFlow 相关资源都将部署在此命名空间下
+  name: knowflow
+  labels:
+    # 应用名称标签，用于资源筛选
+    app: knowflow
+    # 环境标签，可根据实际情况修改为 prod/staging/dev
+    environment: production
+    # 版本标签
+    version: v1

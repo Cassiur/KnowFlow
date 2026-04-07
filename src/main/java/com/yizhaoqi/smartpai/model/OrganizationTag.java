@@ -10,6 +10,10 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "organization_tags")
+@NamedEntityGraph(
+        name = "OrganizationTag.withCreatedBy",
+        attributeNodes = @NamedAttributeNode("createdBy")
+)
 public class OrganizationTag {
     @Id
     @Column(name = "tag_id")
@@ -24,7 +28,7 @@ public class OrganizationTag {
     @Column(name = "parent_tag", length = 255)
     private String parentTag; // 父标签ID
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy; // 创建者ID
 

@@ -9,6 +9,7 @@ import com.yizhaoqi.smartpai.utils.PasswordUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -290,6 +291,7 @@ public class UserService {
      * @param adminUsername 管理员用户名
      */
     @Transactional
+    @CacheEvict(value = "user", allEntries = true)
     public void assignOrgTagsToUser(Long userId, List<String> orgTags, String adminUsername) {
         // 验证操作者是否为管理员
         User admin = userRepository.findByUsername(adminUsername)
@@ -407,6 +409,7 @@ public class UserService {
      * @param username 用户名
      * @param primaryOrg 主组织标签
      */
+    @CacheEvict(value = "user", key = "#username")
     public void setUserPrimaryOrg(String username, String primaryOrg) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));

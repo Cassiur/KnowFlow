@@ -2,6 +2,7 @@ package com.yizhaoqi.smartpai.utils;
 
 import com.yizhaoqi.smartpai.model.User;
 import com.yizhaoqi.smartpai.repository.UserRepository;
+import com.yizhaoqi.smartpai.service.TokenCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +15,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.ArgumentMatchers.*;
 
 /**
  * JWT Token刷新机制测试
@@ -23,6 +25,9 @@ public class JwtUtilsRefreshTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private TokenCacheService tokenCacheService;
 
     @InjectMocks
     private JwtUtils jwtUtils;
@@ -45,6 +50,14 @@ public class JwtUtilsRefreshTest {
 
         // Mock用户仓库行为 (使用lenient模式避免不必要的stubbing警告)
         lenient().when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        
+        // Mock TokenCacheService 行为
+        // cacheToken 和 cacheRefreshToken 方法不需要返回值
+        lenient().doNothing().when(tokenCacheService).cacheToken(anyString(), anyString(), anyString(), anyLong());
+        lenient().doNothing().when(tokenCacheService).cacheRefreshToken(anyString(), anyString(), anyString(), anyLong());
+        // isTokenValid 默认返回 true
+        lenient().when(tokenCacheService.isTokenValid(anyString())).thenReturn(true);
+        lenient().when(tokenCacheService.isRefreshTokenValid(anyString())).thenReturn(true);
     }
 
     @Test

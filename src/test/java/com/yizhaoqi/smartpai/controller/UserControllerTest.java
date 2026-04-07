@@ -13,6 +13,7 @@ import com.yizhaoqi.smartpai.utils.JwtUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -33,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 使用 @WebMvcTest + MockMvc 测试 HTTP 层
  */
 @WebMvcTest(UserController.class)
+@AutoConfigureMockMvc(addFilters = false)  // 禁用安全过滤器以简化测试
 @DisplayName("UserController API 测试")
 class UserControllerTest {
 
@@ -146,9 +148,11 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("login - authenticateUser 返回 null 时返回 401")
+    @DisplayName("login - 凭证无效时返回 401")
     void login_InvalidCredentials_Returns401() throws Exception {
-        given(userService.authenticateUser("user1", "wrongpass")).willReturn(null);
+        // authenticateUser 方法不会返回 null，而是抛出 CustomException
+        willThrow(new CustomException("Invalid username or password", HttpStatus.UNAUTHORIZED))
+                .given(userService).authenticateUser("user1", "wrongpass");
 
         mockMvc.perform(post("/api/v1/users/login")
                         .with(csrf())

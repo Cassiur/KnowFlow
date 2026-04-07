@@ -42,6 +42,11 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        // 默认mock：默认组织标签已存在，避免触发创建系统管理员的逻辑
+        when(organizationTagRepository.existsByTagId("DEFAULT")).thenReturn(true);
+        // 默认mock：私人组织标签不存在，允许创建
+        when(organizationTagRepository.existsByTagId(anyString())).thenReturn(false);
+        when(organizationTagRepository.existsByTagId("DEFAULT")).thenReturn(true);
     }
 
     /**
@@ -51,6 +56,9 @@ class UserServiceTest {
     void testRegisterUser_Success() {
         // 假设用户名 "testuser" 在数据库中不存在
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+        // 默认组织标签已存在，私人组织标签不存在
+        when(organizationTagRepository.existsByTagId("DEFAULT")).thenReturn(true);
+        when(organizationTagRepository.existsByTagId("PRIVATE_testuser")).thenReturn(false);
 
         // 调用 userService 的 registerUser 方法进行用户注册
         userService.registerUser("testuser", "password123");
@@ -58,10 +66,12 @@ class UserServiceTest {
         // 创建 ArgumentCaptor 来捕获 save 方法的参数
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
 
-        // 验证 userRepository.save 被调用了一次，并捕获参数
-        verify(userRepository, times(1)).save(userCaptor.capture());
+        // 验证 userRepository.save 被调用了两次：
+        // 1. 第一次保存用户生成ID (registerUser line 83)
+        // 2. 第二次保存用户更新orgTags信息 (registerUser line 95)
+        verify(userRepository, times(2)).save(userCaptor.capture());
 
-        // 获取捕获的 User 对象并进行断言
+        // 获取最后一次捕获的 User 对象并进行断言
         User savedUser = userCaptor.getValue();
         assertNotNull(savedUser);
         assertEquals("testuser", savedUser.getUsername());

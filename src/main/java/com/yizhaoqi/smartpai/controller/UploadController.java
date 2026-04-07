@@ -8,6 +8,11 @@ import com.yizhaoqi.smartpai.service.FileTypeValidationService;
 import com.yizhaoqi.smartpai.service.UploadService;
 import com.yizhaoqi.smartpai.service.UserService;
 import com.yizhaoqi.smartpai.utils.LogUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+@Tag(name = "文件上传管理", description = "文件上传相关接口，包括分片上传、合并文件、获取上传状态等功能")
 @RestController
 @RequestMapping("/api/v1/upload")
 public class UploadController {
@@ -64,6 +70,12 @@ public class UploadController {
      * @return 返回包含已上传分片和上传进度的响应
      * @throws IOException 当文件读写发生错误时抛出
      */
+    @Operation(summary = "上传文件分片", description = "上传文件分片，支持大文件分块上传，断点续传")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "分片上传成功"),
+        @ApiResponse(responseCode = "400", description = "文件类型不支持或请求参数错误"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/chunk")
     public ResponseEntity<Map<String, Object>> uploadChunk(
             @RequestParam("fileMd5") String fileMd5,
@@ -164,6 +176,11 @@ public class UploadController {
      * @param fileMd5 文件的MD5值，用于唯一标识文件
      * @return 返回包含已上传分片和上传进度的响应
      */
+    @Operation(summary = "获取文件上传状态", description = "获取指定文件的上传进度和已上传分片信息")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取上传状态"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getUploadStatus(@RequestParam("file_md5") String fileMd5, @RequestAttribute("userId") String userId) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("GET_UPLOAD_STATUS");
@@ -223,6 +240,13 @@ public class UploadController {
      * @param userId 当前用户ID
      * @return 返回包含合并后文件访问URL的响应
      */
+    @Operation(summary = "合并文件分片", description = "将所有已上传的分片合并为完整文件，并发送到Kafka进行处理")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "文件合并成功，任务已发送到Kafka"),
+        @ApiResponse(responseCode = "400", description = "分片未全部上传"),
+        @ApiResponse(responseCode = "403", description = "没有权限操作此文件"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @Transactional
     @PostMapping("/merge")
     public ResponseEntity<Map<String, Object>> mergeFile(
@@ -348,6 +372,11 @@ public class UploadController {
      *
      * @return 返回支持的文件类型信息
      */
+    @Operation(summary = "获取支持的文件类型", description = "获取系统支持的文档类型列表，这些文件可以被解析并进行向量化处理")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取支持的文件类型"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/supported-types")
     public ResponseEntity<Map<String, Object>> getSupportedFileTypes() {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("GET_SUPPORTED_TYPES");

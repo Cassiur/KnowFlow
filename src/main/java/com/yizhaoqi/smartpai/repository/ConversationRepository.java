@@ -2,6 +2,7 @@ package com.yizhaoqi.smartpai.repository;
 
 import com.yizhaoqi.smartpai.model.Conversation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
      * @param endDate 结束日期（可选）
      * @return 符合条件的对话记录列表
      */
+    @EntityGraph(value = "Conversation.withUser", type = EntityGraph.EntityGraphType.LOAD)
     List<Conversation> findByUserIdAndTimestampBetween(Long userId, LocalDateTime startDate, LocalDateTime endDate);
 
     /**
@@ -26,6 +28,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
      * @param userId 用户 ID
      * @return 符合条件的对话记录列表
      */
+    @EntityGraph(value = "Conversation.withUser", type = EntityGraph.EntityGraphType.LOAD)
     List<Conversation> findByUserId(Long userId);
     
     /**
@@ -35,5 +38,6 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
      * @param endDate 结束日期
      * @return 符合条件的对话记录列表
      */
+    @EntityGraph(value = "Conversation.withUser", type = EntityGraph.EntityGraphType.LOAD)
     List<Conversation> findByTimestampBetween(LocalDateTime startDate, LocalDateTime endDate);
 }

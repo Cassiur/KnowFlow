@@ -7,6 +7,11 @@ import com.yizhaoqi.smartpai.repository.OrganizationTagRepository;
 import com.yizhaoqi.smartpai.service.DocumentService;
 import com.yizhaoqi.smartpai.utils.LogUtils;
 import com.yizhaoqi.smartpai.utils.JwtUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -30,6 +35,7 @@ import java.util.stream.Collectors;
 /**
  * 文档控制器类，处理文档相关操作请求
  */
+@Tag(name = "文档管理", description = "文档相关接口，包括文档删除、下载、预览、获取文件列表等功能")
 @RestController
 @RequestMapping("/api/v1/documents")
 public class DocumentController {
@@ -54,6 +60,13 @@ public class DocumentController {
      * @param role 用户角色
      * @return 删除结果
      */
+    @Operation(summary = "删除文档", description = "删除指定文档及其相关数据，需要文档所有者或管理员权限")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "文档删除成功"),
+        @ApiResponse(responseCode = "403", description = "没有权限删除此文档"),
+        @ApiResponse(responseCode = "404", description = "文档不存在"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @DeleteMapping("/{fileMd5}")
     public ResponseEntity<?> deleteDocument(
             @PathVariable String fileMd5,
@@ -114,6 +127,11 @@ public class DocumentController {
      * @param orgTags 用户所属组织标签
      * @return 可访问的文件列表
      */
+    @Operation(summary = "获取可访问文件列表", description = "获取当前用户可访问的所有文件列表，包括自己上传的和有权限访问的文件")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取文件列表"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/accessible")
     public ResponseEntity<?> getAccessibleFiles(
             @RequestAttribute("userId") String userId,
@@ -150,6 +168,11 @@ public class DocumentController {
      * @param userId 当前用户ID
      * @return 用户上传的文件列表
      */
+    @Operation(summary = "获取用户上传文件列表", description = "获取当前用户上传的所有文件列表")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取文件列表"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/uploads")
     public ResponseEntity<?> getUserUploadedFiles(
             @RequestAttribute("userId") String userId) {
@@ -205,6 +228,12 @@ public class DocumentController {
      * @param token JWT token
      * @return 文件资源或错误响应
      */
+    @Operation(summary = "下载文件", description = "根据文件名下载文件，公开文件可直接下载，私有文件需要认证")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功生成下载链接"),
+        @ApiResponse(responseCode = "404", description = "文件不存在或无权限访问"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/download")
     public ResponseEntity<?> downloadFileByName(
             @RequestParam String fileName,
@@ -330,6 +359,12 @@ public class DocumentController {
      * @param token JWT token (URL参数，用于向后兼容)
      * @return 文件预览内容或错误响应
      */
+    @Operation(summary = "预览文件", description = "根据文件名预览文件内容，公开文件可直接预览，私有文件需要认证")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取文件预览内容"),
+        @ApiResponse(responseCode = "404", description = "文件不存在或无权限访问"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/preview")
     public ResponseEntity<?> previewFileByName(
             @RequestParam String fileName,

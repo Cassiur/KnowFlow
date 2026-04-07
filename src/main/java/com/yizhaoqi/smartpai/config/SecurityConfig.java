@@ -45,6 +45,8 @@ public class SecurityConfig {
                     .authorizeHttpRequests(authorize -> authorize
                             // 允许静态资源访问
                             .requestMatchers("/", "/test.html", "/static/test.html", "/static/**", "/*.js", "/*.css", "/*.ico").permitAll()
+                            // 允许 Swagger/OpenAPI 文档访问
+                            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                             // 允许 WebSocket 连接
                             .requestMatchers("/chat/**", "/ws/**").permitAll()
                             // 允许登录注册接口

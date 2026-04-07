@@ -11,6 +11,11 @@ import com.yizhaoqi.smartpai.repository.UserRepository;
 import com.yizhaoqi.smartpai.service.UserService;
 import com.yizhaoqi.smartpai.utils.JwtUtils;
 import com.yizhaoqi.smartpai.utils.LogUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -24,6 +29,7 @@ import java.util.stream.Collectors;
 /**
  * 管理员控制器，提供管理知识库、查看系统状态和监控用户活动的接口
  */
+@Tag(name = "管理员管理", description = "管理员相关接口，包括用户管理、知识库管理、系统监控、组织标签管理等功能")
 @RestController
 @RequestMapping("/api/v1/admin")
 public class AdminController {
@@ -49,6 +55,12 @@ public class AdminController {
     /**
      * 获取所有用户列表
      */
+    @Operation(summary = "获取所有用户列表", description = "管理员获取系统中所有用户的列表信息")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取用户列表"),
+        @ApiResponse(responseCode = "403", description = "权限不足，需要管理员权限"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/users")
     public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String token) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("ADMIN_GET_ALL_USERS");
@@ -79,6 +91,12 @@ public class AdminController {
     /**
      * 添加知识库文档
      */
+    @Operation(summary = "添加知识库文档", description = "管理员向知识库添加新文档")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "文档添加成功"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/knowledge/add")
     public ResponseEntity<?> addKnowledgeDocument(
             @RequestHeader("Authorization") String token,
@@ -105,6 +123,12 @@ public class AdminController {
     /**
      * 删除知识库文档
      */
+    @Operation(summary = "删除知识库文档", description = "管理员从知识库删除指定文档")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "文档删除成功"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @DeleteMapping("/knowledge/{documentId}")
     public ResponseEntity<?> deleteKnowledgeDocument(
             @RequestHeader("Authorization") String token,
@@ -130,6 +154,12 @@ public class AdminController {
     /**
      * 获取系统状态
      */
+    @Operation(summary = "获取系统状态", description = "管理员获取系统运行状态信息，包括CPU、内存、磁盘使用情况等")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取系统状态"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/system/status")
     public ResponseEntity<?> getSystemStatus(@RequestHeader("Authorization") String token) {
         String adminUsername = jwtUtils.extractUsernameFromToken(token.replace("Bearer ", ""));
@@ -159,6 +189,12 @@ public class AdminController {
     /**
      * 获取用户活动日志
      */
+    @Operation(summary = "获取用户活动日志", description = "管理员查询用户活动日志，支持按用户名和时间范围筛选")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取活动日志"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/user-activities")
     public ResponseEntity<?> getUserActivities(
             @RequestHeader("Authorization") String token,
@@ -200,6 +236,13 @@ public class AdminController {
     /**
      * 创建管理员用户
      */
+    @Operation(summary = "创建管理员用户", description = "管理员创建新的管理员账户")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "管理员用户创建成功"),
+        @ApiResponse(responseCode = "400", description = "请求参数错误"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/users/create-admin")
     public ResponseEntity<?> createAdminUser(
             @RequestHeader("Authorization") String token,
@@ -224,6 +267,13 @@ public class AdminController {
     /**
      * 创建组织标签
      */
+    @Operation(summary = "创建组织标签", description = "管理员创建新的组织标签")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "组织标签创建成功"),
+        @ApiResponse(responseCode = "400", description = "请求参数错误"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/org-tags")
     public ResponseEntity<?> createOrganizationTag(
             @RequestHeader("Authorization") String token,
@@ -254,6 +304,12 @@ public class AdminController {
     /**
      * 获取所有组织标签
      */
+    @Operation(summary = "获取所有组织标签", description = "管理员获取系统中所有组织标签列表")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取组织标签列表"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/org-tags")
     public ResponseEntity<?> getAllOrganizationTags(@RequestHeader("Authorization") String token) {
         String adminUsername = jwtUtils.extractUsernameFromToken(token.replace("Bearer ", ""));
@@ -272,6 +328,14 @@ public class AdminController {
     /**
      * 为用户分配组织标签
      */
+    @Operation(summary = "为用户分配组织标签", description = "管理员为指定用户分配组织标签")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "组织标签分配成功"),
+        @ApiResponse(responseCode = "400", description = "请求参数错误"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "404", description = "用户不存在"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PutMapping("/users/{userId}/org-tags")
     public ResponseEntity<?> assignOrgTagsToUser(
             @RequestHeader("Authorization") String token,
@@ -297,6 +361,12 @@ public class AdminController {
     /**
      * 获取组织标签树结构
      */
+    @Operation(summary = "获取组织标签树结构", description = "管理员获取组织标签的树形结构，展示层级关系")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取组织标签树"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/org-tags/tree")
     public ResponseEntity<?> getOrganizationTagTree(@RequestHeader("Authorization") String token) {
         String adminUsername = jwtUtils.extractUsernameFromToken(token.replace("Bearer ", ""));
@@ -319,6 +389,14 @@ public class AdminController {
     /**
      * 更新组织标签
      */
+    @Operation(summary = "更新组织标签", description = "管理员更新指定组织标签的信息")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "组织标签更新成功"),
+        @ApiResponse(responseCode = "400", description = "请求参数错误"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "404", description = "组织标签不存在"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PutMapping("/org-tags/{tagId}")
     public ResponseEntity<?> updateOrganizationTag(
             @RequestHeader("Authorization") String token,
@@ -354,6 +432,14 @@ public class AdminController {
     /**
      * 删除组织标签
      */
+    @Operation(summary = "删除组织标签", description = "管理员删除指定的组织标签")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "组织标签删除成功"),
+        @ApiResponse(responseCode = "400", description = "请求参数错误"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "404", description = "组织标签不存在"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @DeleteMapping("/org-tags/{tagId}")
     public ResponseEntity<?> deleteOrganizationTag(
             @RequestHeader("Authorization") String token,
@@ -381,6 +467,13 @@ public class AdminController {
     /**
      * 获取用户列表
      */
+    @Operation(summary = "获取用户列表（分页）", description = "管理员分页查询用户列表，支持按关键字、组织标签和状态筛选")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取用户列表"),
+        @ApiResponse(responseCode = "400", description = "请求参数错误"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/users/list")
     public ResponseEntity<?> getUserList(
             @RequestHeader("Authorization") String token,
@@ -413,6 +506,14 @@ public class AdminController {
     /**
      * 管理员查询所有对话历史
      */
+    @Operation(summary = "查询所有对话历史", description = "管理员查询系统中所有用户的对话历史，支持按用户ID和时间范围筛选")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取对话历史"),
+        @ApiResponse(responseCode = "400", description = "请求参数错误"),
+        @ApiResponse(responseCode = "403", description = "权限不足"),
+        @ApiResponse(responseCode = "404", description = "目标用户不存在"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/conversation")
     public ResponseEntity<?> getAllConversations(
             @RequestHeader("Authorization") String token,

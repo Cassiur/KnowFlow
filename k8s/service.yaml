@@ -1,0 +1,84 @@
+# ============================================
+# KnowFlow 项目 Kubernetes Service 配置
+# ============================================
+# Service 用于暴露应用，提供稳定的网络端点
+# 集群内其他服务通过 Service 名称访问应用
+
+apiVersion: v1
+kind: Service
+metadata:
+  # Service 名称
+  # 其他服务通过 knowflow-service.knowflow.svc.cluster.local 访问
+  name: knowflow-service
+  # 所属命名空间
+  namespace: knowflow
+  labels:
+    app: knowflow
+    component: backend
+  annotations:
+    # 服务描述
+    description: "KnowFlow Backend API Service"
+spec:
+  # ============================================
+  # Service 类型
+  # ============================================
+  # ClusterIP: 仅集群内部可访问（默认，推荐用于微服务）
+  # NodePort: 在每个节点上开放端口，可通过节点 IP 访问
+  # LoadBalancer: 云厂商负载均衡器（云环境使用）
+  # ExternalName: 将服务映射到外部 DNS
+  type: ClusterIP
+  
+  # ============================================
+  # 端口映射配置
+  # ============================================
+  ports:
+    - name: http
+      # Service 暴露的端口（集群内访问此端口）
+      port: 80
+      # 目标端口（容器内应用监听的端口）
+      # 与 application.yml 中的 server.port 和 Dockerfile 中的 EXPOSE 一致
+      targetPort: 8081
+      # 协议
+      protocol: TCP
+      # 当 type=NodePort 时生效的节点端口（30000-32767）
+      # nodePort: 30080
+  
+  # ============================================
+  # Pod 选择器
+  # ============================================
+  # 用于匹配后端 Pod，必须与 Deployment 中的 labels 一致
+  selector:
+    app: knowflow
+    component: backend
+  
+  # ============================================
+  # 会话亲和性（可选）
+  # ============================================
+  # None: 无会话亲和性（默认，负载均衡到任意 Pod）
+  # ClientIP: 基于客户端 IP 的会话亲和性（同一客户端总是路由到同一 Pod）
+  sessionAffinity: None
+  
+  # ============================================
+  # IP 配置
+  # ============================================
+  # 仅集群内部可访问
+  internalTrafficPolicy: Cluster
+
+---
+# ============================================
+# Headless Service 示例（用于 StatefulSet）
+# ============================================
+# 如需部署有状态服务，可使用 Headless Service
+# 
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: knowflow-headless
+#   namespace: knowflow
+# spec:
+#   clusterIP: None  # Headless Service 关键配置
+#   selector:
+#     app: knowflow
+#   ports:
+#     - port: 8081
+#       targetPort: 8081

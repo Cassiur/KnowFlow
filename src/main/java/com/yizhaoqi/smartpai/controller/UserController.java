@@ -6,6 +6,11 @@ import com.yizhaoqi.smartpai.repository.UserRepository;
 import com.yizhaoqi.smartpai.service.UserService;
 import com.yizhaoqi.smartpai.utils.JwtUtils;
 import com.yizhaoqi.smartpai.utils.LogUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "用户管理", description = "用户相关接口，包括用户注册、登录、获取用户信息、组织标签管理等功能")
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
@@ -32,6 +38,13 @@ public class UserController {
 
     // 用户注册接口
     // 接收用户请求体中的用户名和密码，并调用用户服务进行注册
+    @Operation(summary = "用户注册", description = "注册新用户账户，用户名和密码不能为空")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "用户注册成功"),
+        @ApiResponse(responseCode = "400", description = "用户名或密码为空"),
+        @ApiResponse(responseCode = "409", description = "用户名已存在"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserRequest request) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("USER_REGISTER");
@@ -61,6 +74,13 @@ public class UserController {
 
     // 用户登录接口
     // 验证用户身份并生成JWT令牌
+    @Operation(summary = "用户登录", description = "用户登录认证，成功后返回JWT访问令牌和刷新令牌")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "登录成功，返回Token"),
+        @ApiResponse(responseCode = "400", description = "用户名或密码为空"),
+        @ApiResponse(responseCode = "401", description = "用户名或密码错误"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserRequest request) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("USER_LOGIN");
@@ -98,6 +118,13 @@ public class UserController {
     }
 
     // 获取当前用户信息
+    @Operation(summary = "获取当前用户信息", description = "获取当前登录用户的详细信息，包括ID、用户名、角色、组织标签等")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取用户信息"),
+        @ApiResponse(responseCode = "401", description = "Token无效或已过期"),
+        @ApiResponse(responseCode = "404", description = "用户不存在"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String token) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("GET_USER_INFO");
@@ -150,6 +177,12 @@ public class UserController {
     }
     
     // 获取用户组织标签信息
+    @Operation(summary = "获取用户组织标签信息", description = "获取当前用户所属的组织标签列表和主组织标签")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取组织标签信息"),
+        @ApiResponse(responseCode = "401", description = "Token无效或已过期"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/org-tags")
     public ResponseEntity<?> getUserOrgTags(@RequestHeader("Authorization") String token) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("GET_USER_ORG_TAGS");
@@ -184,6 +217,13 @@ public class UserController {
     }
     
     // 设置用户主组织标签
+    @Operation(summary = "设置用户主组织标签", description = "设置当前用户的主组织标签，用于上传文件时的默认组织")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "主组织标签设置成功"),
+        @ApiResponse(responseCode = "400", description = "组织标签为空"),
+        @ApiResponse(responseCode = "401", description = "Token无效或已过期"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PutMapping("/primary-org")
     public ResponseEntity<?> setPrimaryOrg(@RequestHeader("Authorization") String token, @RequestBody PrimaryOrgRequest request) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("SET_PRIMARY_ORG");
@@ -220,6 +260,11 @@ public class UserController {
     }
 
     // 获取当前用户组织标签信息 (供上传文件时使用)
+    @Operation(summary = "获取上传文件组织标签", description = "获取当前用户可用的组织标签信息，用于上传文件时选择组织")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取组织标签信息"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @GetMapping("/upload-orgs")
     public ResponseEntity<?> getUploadOrgTags(@RequestAttribute("userId") String userId) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("GET_UPLOAD_ORG_TAGS");
@@ -254,6 +299,13 @@ public class UserController {
     }
 
     // 用户登出接口
+    @Operation(summary = "用户登出", description = "使当前用户的Token失效，登出当前设备")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "登出成功"),
+        @ApiResponse(responseCode = "400", description = "Token格式无效"),
+        @ApiResponse(responseCode = "401", description = "Token无效"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("USER_LOGOUT");
@@ -289,6 +341,13 @@ public class UserController {
     }
 
     // 用户批量登出接口（登出所有设备）
+    @Operation(summary = "批量登出所有设备", description = "使当前用户的所有Token失效，登出所有设备")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "批量登出成功"),
+        @ApiResponse(responseCode = "400", description = "Token格式无效"),
+        @ApiResponse(responseCode = "401", description = "Token无效"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/logout-all")
     public ResponseEntity<?> logoutAll(@RequestHeader("Authorization") String token) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("USER_LOGOUT_ALL");

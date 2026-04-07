@@ -12,6 +12,10 @@ import java.time.LocalDateTime;
         @Index(name = "idx_user_id", columnList = "user_id"),
         @Index(name = "idx_timestamp", columnList = "timestamp")
 })
+@NamedEntityGraph(
+        name = "Conversation.withUser",
+        attributeNodes = @NamedAttributeNode("user")
+)
 public class Conversation {
 
     @Id

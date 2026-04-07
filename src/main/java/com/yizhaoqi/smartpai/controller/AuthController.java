@@ -3,6 +3,10 @@ package com.yizhaoqi.smartpai.controller;
 import com.yizhaoqi.smartpai.exception.CustomException;
 import com.yizhaoqi.smartpai.utils.JwtUtils;
 import com.yizhaoqi.smartpai.utils.LogUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Tag(name = "认证管理", description = "认证相关接口，包括Token刷新等功能")
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -21,6 +26,13 @@ public class AuthController {
      * 刷新Token接口
      * 用于前端主动刷新token机制的后备方案
      */
+    @Operation(summary = "刷新Token", description = "使用refreshToken获取新的访问令牌和刷新令牌")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Token刷新成功"),
+        @ApiResponse(responseCode = "400", description = "refreshToken为空"),
+        @ApiResponse(responseCode = "401", description = "refreshToken无效或已过期"),
+        @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
     @PostMapping("/refreshToken")
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
         LogUtils.PerformanceMonitor monitor = LogUtils.startPerformanceMonitor("REFRESH_TOKEN");
@@ -76,6 +88,10 @@ public class AuthController {
     /**
      * 自定义后端错误接口（用于测试）
      */
+    @Operation(summary = "自定义后端错误", description = "测试用接口，返回指定的错误码和错误消息")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "返回指定的错误响应")
+    })
     @GetMapping("/error")
     public ResponseEntity<?> customBackendError(@RequestParam String code, @RequestParam String msg) {
         return ResponseEntity.status(Integer.parseInt(code)).body(Map.of("code", Integer.parseInt(code), "message", msg));
