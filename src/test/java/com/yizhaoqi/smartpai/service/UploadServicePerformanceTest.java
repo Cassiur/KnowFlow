@@ -3,18 +3,14 @@ package com.yizhaoqi.smartpai.service;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
- * UploadService 性能测试
- * 
+ * UploadService 性能测试（纯计算，无需 Spring 容器）
+ *
  * 测试优化前后的性能差异：
  * - 优化前：逐个查询Redis，n个分片需要n次网络往返
  * - 优化后：一次性获取所有分片状态，只需要1次网络往返
  */
-@SpringBootTest
-@ActiveProfiles("test")
 public class UploadServicePerformanceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(UploadServicePerformanceTest.class);
